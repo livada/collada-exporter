@@ -245,7 +245,7 @@ class DaeExporter:
         mat_wrap = node_shader_utils.PrincipledBSDFWrapper(material) if material else None
         
         if mat_wrap:
-            textures_keys = ["base_color_texture", "specular_texture", "normalmap_texture"]
+            textures_keys = ["base_color_texture", "specular_texture", "normalmap_texture", "emission_color_texture"]
             
             for i, tkey in enumerate(textures_keys):
                 tex = getattr(mat_wrap, tkey, None)
@@ -284,6 +284,9 @@ class DaeExporter:
                 if ts.use_map_emit and emission_tex is None:
                     emission_tex = sampler_sid
                 """
+                if tkey == "emission_color_texture" and emission_tex is None:
+                    emission_tex = sampler_sid
+
                 if tkey == "normalmap_texture" and normal_tex is None:
                     normal_tex = sampler_sid
         
@@ -340,12 +343,12 @@ class DaeExporter:
         self.writel(S_FX, 5, "<emission>")
         if emission_tex is not None:
             self.writel(
-                S_FX, 6, "<texture texture=\"{}\" texcoord=\"CHANNEL1\"/>"
+                S_FX, 6, "<texture texture=\"{}\" texcoord=\"CHANNEL0\"/>"
                 .format(emission_tex))
         else:
             # TODO: More accurate coloring, if possible     
             self.writel(S_FX, 6, "<color>{}</color>".format(
-                numarr_alpha(material.diffuse_color, 1.0)))#material.emit is removed in Blender 2.8             
+                numarr_alpha(mat_wrap.emission_color, 1.0)))#material.emit is removed in Blender 2.8             
         self.writel(S_FX, 5, "</emission>")
 
         self.writel(S_FX, 5, "<ambient>")
@@ -356,7 +359,7 @@ class DaeExporter:
         self.writel(S_FX, 5, "<diffuse>")
         if diffuse_tex is not None:
             self.writel(
-                S_FX, 6, "<texture texture=\"{}\" texcoord=\"CHANNEL1\"/>"
+                S_FX, 6, "<texture texture=\"{}\" texcoord=\"CHANNEL0\"/>"
                 .format(diffuse_tex))
         else:
             self.writel(S_FX, 6, "<color>{}</color>".format(numarr_alpha(
@@ -367,7 +370,7 @@ class DaeExporter:
         if specular_tex is not None:
             self.writel(
                 S_FX, 6,
-                "<texture texture=\"{}\" texcoord=\"CHANNEL1\"/>".format(
+                "<texture texture=\"{}\" texcoord=\"CHANNEL0\"/>".format(
                     specular_tex))
         else:
             self.writel(S_FX, 6, "<color>{}</color>".format(numarr_alpha(
@@ -404,7 +407,7 @@ class DaeExporter:
             self.writel(S_FX, 6, "<bump bumptype=\"NORMALMAP\">")
             self.writel(
                 S_FX, 7,
-                "<texture texture=\"{}\" texcoord=\"CHANNEL1\"/>".format(
+                "<texture texture=\"{}\" texcoord=\"CHANNEL0\"/>".format(
                     normal_tex))
             self.writel(S_FX, 6, "</bump>")
 
@@ -639,7 +642,8 @@ class DaeExporter:
             bm.free()
 
         #mesh.update(calc_tessface=True)# 2.79
-        mesh.update(calc_edges=False, calc_edges_loose=False, calc_loop_triangles=True)# 2.80
+        #mesh.update(calc_edges=False, calc_edges_loose=False, calc_loop_triangles=True)# 2.80
+        mesh.update(calc_edges=False, calc_edges_loose=False)# 2.81
         vertices = []
         vertex_map = {}
         surface_indices = {}
