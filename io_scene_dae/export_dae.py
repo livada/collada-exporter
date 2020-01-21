@@ -241,7 +241,7 @@ class DaeExporter:
         emission_tex = None
         normal_tex = None
         
-        #TODO, use Blender 2.8 principled shader and connected maps
+        # TODO, use Blender 2.8 principled shader and connected maps
         mat_wrap = node_shader_utils.PrincipledBSDFWrapper(material) if material else None
         
         if mat_wrap:
@@ -249,9 +249,9 @@ class DaeExporter:
             
             for i, tkey in enumerate(textures_keys):
                 tex = getattr(mat_wrap, tkey, None)
-                if tex == None:
+                if tex is None:
                     continue
-                if tex.image == None:
+                if tex.image is None:
                     continue
 
                 # Image
@@ -279,14 +279,8 @@ class DaeExporter:
                     diffuse_tex = sampler_sid
                 if tkey == "specular_texture" and specular_tex is None:
                     specular_tex = sampler_sid
-                """
-                # TODO differently, no emission input in the principled shader
-                if ts.use_map_emit and emission_tex is None:
-                    emission_tex = sampler_sid
-                """
                 if tkey == "emission_color_texture" and emission_tex is None:
                     emission_tex = sampler_sid
-
                 if tkey == "normalmap_texture" and normal_tex is None:
                     normal_tex = sampler_sid
         
@@ -337,8 +331,8 @@ class DaeExporter:
         """
         
         self.writel(S_FX, 3, "<technique sid=\"common\">")
-        shtype = "blinn"
-        self.writel(S_FX, 4, "<{}>".format(shtype))
+        shader_type = "blinn"
+        self.writel(S_FX, 4, "<{}>".format(shader_type))
 
         self.writel(S_FX, 5, "<emission>")
         if emission_tex is not None:
@@ -348,12 +342,12 @@ class DaeExporter:
         else:
             # TODO: More accurate coloring, if possible     
             self.writel(S_FX, 6, "<color>{}</color>".format(
-                numarr_alpha(mat_wrap.emission_color, 1.0)))#material.emit is removed in Blender 2.8             
+                numarr_alpha(mat_wrap.emission_color, 1.0)))  # material.emit is removed in Blender 2.8
         self.writel(S_FX, 5, "</emission>")
 
         self.writel(S_FX, 5, "<ambient>")
         self.writel(S_FX, 6, "<color>{}</color>".format(
-            numarr_alpha((0.0,0.0,0.0), 1.0)))# self.scene.world.ambient_color and material.ambient are removed too
+            numarr_alpha((0.0, 0.0, 0.0), 1.0)))  # self.scene.world.ambient_color and material.ambient are removed too
         self.writel(S_FX, 5, "</ambient>")
 
         self.writel(S_FX, 5, "<diffuse>")
@@ -363,7 +357,7 @@ class DaeExporter:
                 .format(diffuse_tex))
         else:
             self.writel(S_FX, 6, "<color>{}</color>".format(numarr_alpha(
-                material.diffuse_color, 0.8)))# material.diffuse_intensity is removed too
+                mat_wrap.base_color, 1.0)))  # material.diffuse_intensity is removed too
         self.writel(S_FX, 5, "</diffuse>")
 
         self.writel(S_FX, 5, "<specular>")
@@ -374,17 +368,17 @@ class DaeExporter:
                     specular_tex))
         else:
             self.writel(S_FX, 6, "<color>{}</color>".format(numarr_alpha(
-                material.specular_color, material.specular_intensity)))
+                (1.0, 1.0, 1.0), mat_wrap.specular)))
         self.writel(S_FX, 5, "</specular>")
 
         self.writel(S_FX, 5, "<shininess>")
         self.writel(S_FX, 6, "<float>{}</float>".format(
-            50))# material.specular_hardness is removed too
+            1.0 - mat_wrap.roughness))  # material.specular_hardness is removed too
         self.writel(S_FX, 5, "</shininess>")
 
         self.writel(S_FX, 5, "<reflective>")
         self.writel(S_FX, 6, "<color>{}</color>".format(
-            numarr_alpha((0.5,0.5,0.5))))# material.mirror_color is removed too
+            numarr_alpha((0.1, 0.1, 0.1))))  # material.mirror_color is removed too
         self.writel(S_FX, 5, "</reflective>")
 
         """
@@ -396,14 +390,14 @@ class DaeExporter:
         """
         
         self.writel(S_FX, 5, "<index_of_refraction>")
-        self.writel(S_FX, 6, "<float>{}</float>".format(1.2))#material.specular_ior is removed too
+        self.writel(S_FX, 6, "<float>{}</float>".format(mat_wrap.ior))  # material.specular_ior is removed too
         self.writel(S_FX, 5, "</index_of_refraction>")
 
-        self.writel(S_FX, 4, "</{}>".format(shtype))
+        self.writel(S_FX, 4, "</{}>".format(shader_type))
 
         self.writel(S_FX, 4, "<extra>")
         self.writel(S_FX, 5, "<technique profile=\"FCOLLADA\">")
-        if (normal_tex):
+        if normal_tex:
             self.writel(S_FX, 6, "<bump bumptype=\"NORMALMAP\">")
             self.writel(
                 S_FX, 7,
